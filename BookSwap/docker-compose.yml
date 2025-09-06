@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: bookswap-postgres
+    environment:
+      POSTGRES_DB: bookswap_db
+      POSTGRES_USER: bookswap_user
+      POSTGRES_PASSWORD: bookswap_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - bookswap-network
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: bookswap-app
+    depends_on:
+      - db
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/bookswap_db
+      SPRING_DATASOURCE_USERNAME: bookswap_user
+      SPRING_DATASOURCE_PASSWORD: bookswap_password
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    ports:
+      - "8080:8080"
+    networks:
+      - bookswap-network
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+
+volumes:
+  postgres_data:
+
+networks:
+  bookswap-network:
+    driver: bridge 
